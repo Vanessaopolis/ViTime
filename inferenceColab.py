@@ -65,24 +65,31 @@ def salvar_previsao_csv(alvo, previstos, caminho_csv):
   df.to_csv(caminho_csv, index=False)
 
 
-def main(modelpath, qnt_alvo):
+def main(modelpath, qnt_alvo, savepath):
   model, args = carregar_modelo(modelpath)
 
   # Leitura do CSV
   df = pd.read_csv('/content/drive/MyDrive/ViTime/BD_AC_CPUTemp.csv', sep=';')
   data = df['CPUTemp'].dropna().values
   total_len = len(data)
+  
+  if total_len > 5 * qnt_alvo:
+    data = data[max(0, total_len - (5 * qnt_alvo)):]
+    total_len = len(data)
 
   entrada = data[:total_len - qnt_alvo]
+  dados_plotagem = data[max(0, total_len - (3 * qnt_alvo)):]
   alvo = data[-qnt_alvo:]
+
   previstos = executar_previsao(entrada, alvo, model, args)
-  plotar_grafico(data, previstos, len(entrada), f"Previsão das Últimas {qnt_alvo} Leituras", f"plot_qnt{qnt_alvo}.png")
-  salvar_previsao_csv(alvo, previstos, f"previsao_qnt{qnt_alvo}.csv")
+  plotar_grafico(dados_plotagem, previstos, len(dados_plotagem) - qnt_alvo, f"Previsão das Últimas {qnt_alvo} Leituras (zeroshot)", savepath)
+  salvar_previsao_csv(alvo, previstos, f"{qnt_alvo}leituras_zeroshot.csv")
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='ViTime model inference')
   parser.add_argument('--modelpath', type=str, required=True, help='Path to the model checkpoint file')
   parser.add_argument('--qnt_alvo', type=int, default=100, help='Number of target values to predict (default: 100)')
+  parser.add_argument('--savepath', type=str, required=True, help='Path to the model checkpoint file')
   args = parser.parse_args()
-  main(args.modelpath, args.qnt_alvo)
+  main(args.modelpath, args.qnt_alvo, args.savepath)
