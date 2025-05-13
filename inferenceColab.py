@@ -21,7 +21,8 @@ def inverse_interpolate(processed_sequence, original_length):
   x_inverse = np.linspace(0, 1, z)
   f_inverse = interpolate.interp1d(x_processed, processed_sequence)
   return f_inverse(x_inverse)
-  
+
+
 def carregar_modelo(modelpath):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   checkpoint = torch.load(modelpath, map_location=device)
@@ -48,13 +49,18 @@ def executar_previsao(entrada, alvo, model, args):
   return predicted
 
 
-def plotar_grafico(dados, previstos, inicio_previsao, titulo, caminho_grafico):
+def plotar_grafico(dados, previstos, titulo, caminho_grafico):
   plt.figure(figsize=(20, 8))
   plt.plot(dados, label='Real', color='blue')
+
+  inicio_previsao = len(dados) - len(previstos)
   posicao_previstos = range(inicio_previsao, inicio_previsao + len(previstos))
+  
   plt.plot(posicao_previstos, previstos, label='Previsão', color='red')
-  plt.title(titulo)
-  plt.legend()
+  plt.title(titulo, fontsize=24)
+  plt.legend(fontsize=16)
+  plt.xticks(fontsize=14)
+  plt.yticks(fontsize=14)
   plt.grid(True)
   plt.savefig(caminho_grafico, dpi=300)
   plt.close()
@@ -68,23 +74,39 @@ def salvar_previsao_csv(alvo, previstos, caminho_csv):
 def main(modelpath, qnt_alvo, savepath):
   model, args = carregar_modelo(modelpath)
 
-  # Leitura do CSV
+  # AC
   df = pd.read_csv('/content/drive/MyDrive/ViTime/BD_AC_CPUTemp.csv', sep=';')
-  data = df['CPUTemp'].dropna().values
-  total_len = len(data)
+  data_ac = df['CPUTemp'].dropna().values
+  total_len_ac = len(data_ac)
   
-  if total_len > 5 * qnt_alvo:
-    data = data[max(0, total_len - (5 * qnt_alvo)):]
-    total_len = len(data)
+  if total_len_ac > 5 * qnt_alvo:
+    data_ac = data_ac[max(0, total_len_ac - (5 * qnt_alvo)):]
+    total_len_ac = len(data_ac)
 
-  entrada = data[:total_len - qnt_alvo]
-  dados_plotagem = data[max(0, total_len - (3 * qnt_alvo)):]
-  alvo = data[-qnt_alvo:]
+  entrada_ac = data_ac[:total_len_ac - qnt_alvo]
+  dados_plotagem_ac = data_ac[max(0, total_len_ac - (3 * qnt_alvo)):]
+  alvo_ac = data_ac[-qnt_alvo:]
 
-  previstos = executar_previsao(entrada, alvo, model, args)
-  plotar_grafico(dados_plotagem, previstos, len(dados_plotagem) - qnt_alvo, f"Previsão das Últimas {qnt_alvo} Leituras (zeroshot)", savepath)
-  salvar_previsao_csv(alvo, previstos, f"{qnt_alvo}leituras_zeroshot.csv")
+  previstos_ac = executar_previsao(entrada_ac, alvo_ac, model, args)
+  plotar_grafico(dados_plotagem_ac, previstos_ac, f"Previsão das Últimas {qnt_alvo} Leituras (AC) - zeroshot", f"{savepath}_ac.png")
+  salvar_previsao_csv(alvo_ac, previstos_ac, f"{savepath}_ac.csv")
 
+  # DC
+  df = pd.read_csv('/content/drive/MyDrive/ViTime/BD_DC_CPUTemp.csv', sep=';')
+  data_dc = df['CPUTemp'].dropna().values
+  total_len_dc = len(data_dc)
+  
+  if total_len_dc > 5 * qnt_alvo:
+    data_dc = data_dc[max(0, total_len_dc - (5 * qnt_alvo)):]
+    total_len_dc = len(data_dc)
+
+  entrada_dc = data_dc[:total_len_dc - qnt_alvo]
+  dados_plotagem_dc = data_dc[max(0, total_len_dc - (3 * qnt_alvo)):]
+  alvo_dc = data_dc[-qnt_alvo:]
+
+  previstos_dc = executar_previsao(entrada_dc, alvo_dc, model, args)
+  plotar_grafico(dados_plotagem_dc, previstos_dc, f"Previsão das Últimas {qnt_alvo} Leituras (DC) - zeroshot", f"{savepath}_dc.png")
+  salvar_previsao_csv(alvo_dc, previstos_dc, f"{savepath}_dc.csv")
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='ViTime model inference')
