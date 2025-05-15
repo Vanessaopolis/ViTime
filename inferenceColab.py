@@ -99,13 +99,13 @@ def salvar_metricas_csv(nome_modelo, mse, rmse, tempos, picos_memoria, repeticoe
 
   df = pd.DataFrame({
     'nome_modelo': [nome_modelo],
-    'mse': [mse],
-    'rmse': [rmse],
-    'tempo_consumo (ns)': [tempo_medio],
-    'desvio_tempo': [std_tempo],
-    'memoria_consumo (mb)': [memoria_media],
-    'memoria_max (mb)': [memoria_max],
-    'desvio_memoria': [std_memoria]
+    'mse': [round(mse, 2)],
+    'rmse': [round(rmse, 2)],
+    'tempo_consumo (ns)': [round(tempo_medio, 3)],
+    'desvio_tempo': [round(std_tempo, 3)],
+    'memoria_consumo (mb)': [round(memoria_media, 4)],
+    'memoria_max (mb)': [round(memoria_max, 4)],
+    'desvio_memoria': [round(std_memoria, 4)]
   })
     
   try:
