@@ -181,7 +181,7 @@ def main(modelpath, qnt_alvo, input_type):
     print(f"n = {qnt_alvo}, i = {i}, t = {tempos[-1]}, mb = {picos_memoria[-1]:.5f}, mse = {mse_i}, rmse = {rmse_i}")
   print()
 
-  nome_modelo = f"ViTime_{tempo_de_leituras(qnt_alvo)}_{input_type}"
+  nome_modelo = f"ViTime_{input_type}_{tempo_de_leituras(qnt_alvo)}"
   mse_medio = mse / repeticoes
   rmse_medio = rmse / repeticoes
 
