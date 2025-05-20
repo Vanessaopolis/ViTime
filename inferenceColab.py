@@ -101,7 +101,7 @@ def salvar_metricas_csv(nome_modelo, mse, rmse, tempos, picos_memoria, repeticoe
     'nome_modelo': [nome_modelo],
     'mse': [round(mse, 2)],
     'rmse': [round(rmse, 2)],
-    'tempo_consumo (ns)': [round(tempo_medio, 3)],
+    'tempo_consumo (s)': [round(tempo_medio, 3)],
     'desvio_tempo': [round(std_tempo, 3)],
     'memoria_consumo (mb)': [round(memoria_media, 4)],
     'memoria_max (mb)': [round(memoria_max, 4)],
@@ -171,7 +171,7 @@ def main(modelpath, qnt_alvo, input_type):
     atual, pico = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
-    tempos.append(fim - inicio)
+    tempos.append((fim - inicio) / (10 ** 9))
     picos_memoria.append(pico / (1024 ** 2))
 
     mse_i, rmse_i = calcular_mse_rmse(alvo, previstos)
@@ -185,8 +185,8 @@ def main(modelpath, qnt_alvo, input_type):
   mse_medio = mse / repeticoes
   rmse_medio = rmse / repeticoes
 
-  plotar_grafico(dados_plotagem, previstos, f"Inferência das Últimas {qnt_alvo} Leituras (zeroshot) - DB inteiro", f"{nome_modelo}.png")
-  salvar_metricas_csv(nome_modelo, mse_medio, rmse_medio, tempos, picos_memoria, repeticoes, f"metricas_{input_type}.csv")
+  plotar_grafico(dados_plotagem, previstos, f"Inferência das Últimas {qnt_alvo} Leituras (zeroshot) - {input_type}", f"{nome_modelo}.png")
+  salvar_metricas_csv(nome_modelo, mse_medio, rmse_medio, tempos, picos_memoria, repeticoes, f"metricas.csv")
   salvar_previsao_csv(nome_modelo, alvo, previstos, f"{nome_modelo}.csv")
 
 
