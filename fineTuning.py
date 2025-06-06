@@ -61,6 +61,7 @@ def train_epoch(model, optimizer, criterion, X_train, y_train, args):
     print(6)
     batch_x_cpu = batch_x.cpu()
 
+    print(f"batch_x.shape {batch_x.shape}")
     print(f"len(batch_x.shape) {len(batch_x.shape)}")
     if len(batch_x_cpu.shape) == 2:
       batch_x_cpu = batch_x_cpu.unsqueeze(-1)
@@ -101,7 +102,7 @@ def evaluate(model, criterion, X_val, y_val, args):
       print(16)
       batch_x_cpu = batch_x.cpu()
 
-      
+      print(f"batch_x.shape {batch_x.shape}")
       print(f"len(batch_x.shape) {len(batch_x.shape)}")
       if len(batch_x_cpu.shape) == 2:
         batch_x_cpu = batch_x_cpu.unsqueeze(-1)
