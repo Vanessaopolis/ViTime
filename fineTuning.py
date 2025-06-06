@@ -159,7 +159,6 @@ def main():
   
   input_len = 512
   pred_len = 720
-
   X, y = preparar_dados(valid_data, input_len, pred_len)
   X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, shuffle=False)
 
