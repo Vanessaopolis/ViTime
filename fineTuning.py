@@ -60,6 +60,7 @@ def train_epoch(model, optimizer, criterion, X_train, y_train, args):
     batch_y = y_train[i:i+args.batch_size]
     print(6)
     batch_x_cpu = batch_x.cpu()
+    batch_y_cpu = batch_y.cpu()
 
     print(f"batch_x.shape {batch_x.shape}")
     print(f"len(batch_x.shape) {len(batch_x.shape)}")
@@ -67,9 +68,15 @@ def train_epoch(model, optimizer, criterion, X_train, y_train, args):
       batch_x_cpu = batch_x_cpu.unsqueeze(-1)
     
     print(7)
-    outputs = model.inference(batch_x_cpu)
+    outputs = model.customTrain(batch_x_cpu)
+    # outputs = torch.from_numpy(outputs).squeeze()
     print(8)
-    loss = criterion(outputs, batch_y)
+    
+    batch_y_cpu,d,mu,std=model.dataTool.dataTransformationBatch(batch_y_cpu)
+    
+    print(outputs.shape)
+    print(batch_y.shape)
+    loss = criterion(outputs.cpu(), batch_y_cpu)
     print(9)
     optimizer.zero_grad()
     print(10)
@@ -163,14 +170,14 @@ def main():
   X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, shuffle=False)
 
   # X_train = torch.tensor(X_train, dtype=torch.float32).to(device).reshape(-1, 1, 4, 128)
-  X_train = torch.tensor(X_train, dtype=torch.float32).to(device).unsqueeze(-1)
+  X_train = torch.tensor(X_train, dtype=torch.float32).cpu().unsqueeze(-1)
   print(f"X_train shape: {X_train.shape}")
-  y_train = torch.tensor(y_train, dtype=torch.float32).to(device)
+  y_train = torch.tensor(y_train, dtype=torch.float32).cpu()
   print(f"y_train shape: {y_train.shape}")
   # X_val = torch.tensor(X_val, dtype=torch.float32).to(device).reshape(-1, 1, 4, 128)
-  X_val = torch.tensor(X_val, dtype=torch.float32).to(device).unsqueeze(-1)
+  X_val = torch.tensor(X_val, dtype=torch.float32).cpu().unsqueeze(-1)
   print(f"X_val shape: {X_val.shape}")
-  y_val = torch.tensor(y_val, dtype=torch.float32).to(device)
+  y_val = torch.tensor(y_val, dtype=torch.float32).cpu()
   print(f"y_val shape: {y_val.shape}")
   print()
 
@@ -187,10 +194,11 @@ def main():
   print(vars(args))
   print()
 
-  model = ViTime(args).to(device)
+  # model = ViTime(args).to(device)
+  model = ViTime(args).cpu()
   model.dataTool.device = device
   model.load_state_dict(checkpoint['model'])
-  model.to(device)
+  # model.to(device)
 
   optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
   criterion = nn.MSELoss()
