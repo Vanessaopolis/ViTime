@@ -54,7 +54,10 @@ class ViTime(nn.Module):
         mask[:, :self.args.size[0], :] = 0
         mask = mask.to(x.device)
 
+        x = x.cpu()
+
         xO = copy.deepcopy(x)
+        print("para aqui, linha 60, model.py")
         x = self.model(x)
 
         x = self.EMD(x / 10)
