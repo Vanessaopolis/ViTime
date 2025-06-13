@@ -54,7 +54,7 @@ class ViTime(nn.Module):
         mask[:, :self.args.size[0], :] = 0
         mask = mask.to(x.device)
 
-        x = x.cpu()
+        # x = x.cpu()
 
         xO = copy.deepcopy(x)
         print("para aqui, linha 60, model.py")
@@ -152,31 +152,33 @@ class ViTime(nn.Module):
         return yp
 
 
-    def customTrain(self, data_x,mu=None,std=None):
-        self.dataTool.mu=mu
-        self.dataTool.std=std
-        if len(data_x.shape)==1:
+    def customTrain(self, data_x, mu=None, std=None):
+        self.dataTool.mu = mu
+        self.dataTool.std = std
+        if len(data_x.shape) == 1:
             data_x=data_x.reshape(1,-1,1)
         elif len(data_x.shape) == 2:
             T,C=data_x.shape
             data_x = data_x.reshape(1, T, C)
 
-        x,d,mu,std=self.dataTool.dataTransformationBatch(data_x)
+        x,d,mu,std = self.dataTool.dataTransformationBatch(data_x.cpu())
         print(mu,std)
         xInput = x.to(self.device)
+        print(f"xInput.shape {xInput.shape}")
 
         # xInput[:,:,250*2:350*2,:]=0
 
-
         #x = self.forward(xInput).detach().cpu().numpy()
-        x = self.forward(xInput).cpu()
+        x = self.forward(xInput) #.cpu()
 
-        # ypredExp = self.dataTool.Pixel2data(x, method='max')
+        """ypredExp = self.dataTool.Pixel2data(x, method='max')
         #ypredExp = self.dataTool.Pixel2data(x, method='expection')
+        print(f"ypredExp.shape {ypredExp.shape}")
+        yp = (ypredExp[:, self.args.size[0]:self.args.size[0] + self.args.size[2], :] * std + mu)
+        if self.args.upscal:
+            yp = yp[:, 1::2, :]
+        
+        print(f"yp.shape {yp.shape}")
 
-        #yp = (ypredExp[:, self.args.size[0]:self.args.size[0] + self.args.size[2], :] * std + mu)
-        #if self.args.upscal:
-        #    yp = yp[:, 1::2, :]
-
-        #return yp
+        #return yp"""
         return x

@@ -129,12 +129,9 @@ class Dataset_ViTime(Dataset):
 
     def dataTransformation(self,dataX):
         '''
-
         :param data: T,C
         :return:
         '''
-
-
         T, c = dataX.shape
 
         realInputLength=T
@@ -185,7 +182,7 @@ class Dataset_ViTime(Dataset):
         return torch.from_numpy(x).float(), torch.from_numpy(d).float(),mu,std
 
     def dataTransformationBatch(self, dataX):
-        bs,T,C=dataX.shape
+        bs, T, C = dataX.shape
         for i in range(bs):
             if i==0:
                 x,d,mu,std=self.dataTransformation(dataX[i,:])

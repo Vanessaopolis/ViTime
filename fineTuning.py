@@ -59,24 +59,28 @@ def train_epoch(model, optimizer, criterion, X_train, y_train, args):
     batch_x = X_train[i:i+args.batch_size]
     batch_y = y_train[i:i+args.batch_size]
     print(6)
-    batch_x_cpu = batch_x.cpu()
-    batch_y_cpu = batch_y.cpu()
+    batch_x_cpu = batch_x.to(args.device) #.cpu()
+    # batch_y_cpu = batch_y.to(args.device) #.cpu()
 
     print(f"batch_x.shape {batch_x.shape}")
-    print(f"len(batch_x.shape) {len(batch_x.shape)}")
     if len(batch_x_cpu.shape) == 2:
       batch_x_cpu = batch_x_cpu.unsqueeze(-1)
+
     
     print(7)
     outputs = model.customTrain(batch_x_cpu)
     # outputs = torch.from_numpy(outputs).squeeze()
     print(8)
     
-    batch_y_cpu,d,mu,std=model.dataTool.dataTransformationBatch(batch_y_cpu)
-    
-    print(outputs.shape)
+    if len(batch_y.shape) == 2:
+      batch_y = batch_y.unsqueeze(-1)
     print(batch_y.shape)
-    loss = criterion(outputs.cpu(), batch_y_cpu)
+    
+    batch_y,d,mu,std=model.dataTool.dataTransformationBatch(batch_y)
+    batch_y = batch_y.to(args.device)
+    print(f"outputs.shape {outputs.shape}")
+    print(f"batch_y.shape {batch_y.shape}")
+    loss = criterion(outputs, batch_y)
     print(9)
     optimizer.zero_grad()
     print(10)
@@ -165,7 +169,7 @@ def main():
   valid_data = data[: 4992]
   
   input_len = 512
-  pred_len = 720
+  pred_len = 512
   X, y = preparar_dados(valid_data, input_len, pred_len)
   X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, shuffle=False)
 
@@ -188,15 +192,18 @@ def main():
   args.device = device
   args.flag = 'train'
   args.upscal = True
-  args.batch_size = 16
+  args.batch_size = 2
   # args.h = 1
   # args.size = [212, 0 , 300]
   print(vars(args))
   print()
 
-  # model = ViTime(args).to(device)
-  model = ViTime(args).cpu()
-  model.dataTool.device = device
+  model = ViTime(args).to(device)
+  # model = ViTime(args)
+  print(f"model device {model.device}")
+
+  # model.dataTool.device = device
+  model.dataTool.device = 'cpu'
   model.load_state_dict(checkpoint['model'])
   # model.to(device)
 
