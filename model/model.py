@@ -37,6 +37,7 @@ class ViTime(nn.Module):
         self.dataTool=Dataset_ViTime(args)
         self.device=args.device
 
+
     def forward(self, x, temparture=1):
         """
         Forward pass of the combined model.
@@ -84,19 +85,17 @@ class ViTime(nn.Module):
 
         # xInput[:,:,250*2:350*2,:]=0
 
-
-        #x = self.forward(xInput).detach().cpu().numpy()
-        x = self.forward(xInput).cpu()
+        x = self.forward(xInput).detach().cpu().numpy()
 
         # ypredExp = self.dataTool.Pixel2data(x, method='max')
-        #ypredExp = self.dataTool.Pixel2data(x, method='expection')
+        ypredExp = self.dataTool.Pixel2data(x, method='expection')
 
-        #yp = (ypredExp[:, self.args.size[0]:self.args.size[0] + self.args.size[2], :] * std + mu)
-        #if self.args.upscal:
-        #    yp = yp[:, 1::2, :]
+        yp = (ypredExp[:, self.args.size[0]:self.args.size[0] + self.args.size[2], :] * std + mu)
+        if self.args.upscal:
+            yp = yp[:, 1::2, :]
 
-        #return yp
-        return x
+        return yp
+
 
     def cycleForword(self, model, x, xO, cycleNumber=None, mask=None):
 
@@ -108,6 +107,7 @@ class ViTime(nn.Module):
         x = model(x)
 
         return x
+
 
     def forwardCycle(self, x, temparture=1):
         bs, c, w, h = x.shape
@@ -128,6 +128,7 @@ class ViTime(nn.Module):
         x = self.EMD(x / temparture)
         x = x.view(bs, c, w, h)
         return x
+
 
     def inferenceCycle(self, data_x):
         if len(data_x.shape)==1:

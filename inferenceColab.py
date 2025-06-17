@@ -47,6 +47,7 @@ def executar_previsao(entrada, alvo, model, args):
   interpolated_input = interpolate_to_512(entrada)
   args.realInputLength = len(interpolated_input)
   predicted = model.inference(interpolated_input).flatten()
+  predicted = model.inference(entrada).flatten()
   predicted = inverse_interpolate(predicted, len(entrada)).flatten()
   predicted = predicted[:len(alvo)]
   return predicted
@@ -80,32 +81,29 @@ def calcular_mse_rmse(real, previsto):
 
 
 def tempo_de_leituras(n):
-  total_segundos = n * 5
+  segundos = n * 5
   
-  if total_segundos < 60:
-    return f"{total_segundos}_seg"
-  
-  minutos = total_segundos // 60
-  return f"{minutos}_min"
+  if segundos < 60:
+    return f"{segundos}seg"
+
+  minutos = segundos // 60
+  if minutos < 60:
+    return f"{minutos}min"
+
+  horas = minutos // 60
+  return f"{horas}hrs"
 
 
-def salvar_metricas_csv(nome_modelo, mse, rmse, tempos, picos_memoria, repeticoes, caminho_csv):
-  tempo_medio = sum(tempos) / repeticoes
-  std_tempo = np.std(tempos)
-
-  memoria_media = sum(picos_memoria) / repeticoes
-  memoria_max = max(picos_memoria)
-  std_memoria = np.std(picos_memoria)
-
+def salvar_run_csv(nome_modelo, real, previsto, entrada, mse, rmse, tempo, pico_memoria, caminho_csv):
   df = pd.DataFrame({
     'nome_modelo': [nome_modelo],
-    'mse': [round(mse, 2)],
-    'rmse': [round(rmse, 2)],
-    'tempo_consumo (s)': [round(tempo_medio, 3)],
-    'desvio_tempo': [round(std_tempo, 3)],
-    'memoria_consumo (mb)': [round(memoria_media, 4)],
-    'memoria_max (mb)': [round(memoria_max, 4)],
-    'desvio_memoria': [round(std_memoria, 4)]
+    'real': [real],
+    'previsto': [previsto],
+    'entrada': [entrada],
+    'mse': [mse],
+    'rmse': [rmse],
+    'tempo_consumo (s)': [tempo],
+    'memoria_consumo (mb)': [pico_memoria],
   })
     
   try:
@@ -156,10 +154,7 @@ def main(modelpath, qnt_alvo, input_type):
   alvo = data[-qnt_alvo:]
 
   repeticoes = 30
-  tempos = []
-  picos_memoria = []
-  mse = 0
-  rmse = 0
+  nome_modelo = f"ViTime_{input_type}_{tempo_de_leituras(qnt_alvo)}"
   
   for i in range(repeticoes):
     tracemalloc.start()
@@ -171,23 +166,28 @@ def main(modelpath, qnt_alvo, input_type):
     atual, pico = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
-    tempos.append((fim - inicio) / (10 ** 9))
-    picos_memoria.append(pico / (1024 ** 2))
+    tempo = (fim - inicio) / (10 ** 9)
+    pico_memoria = (pico / (1024 ** 2))
 
-    mse_i, rmse_i = calcular_mse_rmse(alvo, previstos)
-    mse += mse_i
-    rmse += rmse_i
+    mse, rmse = calcular_mse_rmse(alvo, previstos)
 
-    print(f"n = {qnt_alvo}, i = {i}, t = {tempos[-1]}, mb = {picos_memoria[-1]:.5f}, mse = {mse_i}, rmse = {rmse_i}")
+    print(f"n = {qnt_alvo}, i = {i+1}, mse = {mse}, rmse = {rmse}, t = {tempo:.5f}, mb = {pico_memoria:.5f}")
+    salvar_run_csv(nome_modelo=f"nome_modelo_{i+1}run", 
+                    real=alvo, 
+                    previsto=previstos, 
+                    entrada=entrada, 
+                    mse=mse,
+                    rmse=rmse,
+                    tempo=tempo,
+                    pico_memoria=pico_memoria,
+                    caminho_csv="resultado_inferencia.csv")
   print()
 
-  nome_modelo = f"ViTime_{input_type}_{tempo_de_leituras(qnt_alvo)}"
   mse_medio = mse / repeticoes
   rmse_medio = rmse / repeticoes
 
-  plotar_grafico(dados_plotagem, previstos, f"Inferência das Últimas {qnt_alvo} Leituras (zeroshot) - {input_type}", f"{nome_modelo}.png")
-  salvar_metricas_csv(nome_modelo, mse_medio, rmse_medio, tempos, picos_memoria, repeticoes, f"metricas.csv")
-  salvar_previsao_csv(nome_modelo, alvo, previstos, f"{nome_modelo}.csv")
+  #plotar_grafico(dados_plotagem, previstos, f"Inferência das Últimas {qnt_alvo} Leituras (zeroshot) - {input_type}", f"{nome_modelo}.png")
+  #salvar_previsao_csv(nome_modelo, alvo, previstos, f"{nome_modelo}.csv")
 
 
 if __name__ == "__main__":
