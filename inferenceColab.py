@@ -1,13 +1,15 @@
+import json
+import time
+import torch
 import argparse
-import matplotlib.pyplot as plt
-from model.model import ViTime
+import tracemalloc
 import numpy as np
 import pandas as pd
-import torch
+import matplotlib.pyplot as plt
+
 from scipy import interpolate
+from model.model import ViTime
 from sklearn.metrics import mean_squared_error
-import time
-import tracemalloc
 
 
 def interpolate_to_512(original_sequence):
@@ -47,7 +49,6 @@ def executar_previsao(entrada, alvo, model, args):
   interpolated_input = interpolate_to_512(entrada)
   args.realInputLength = len(interpolated_input)
   predicted = model.inference(interpolated_input).flatten()
-  predicted = model.inference(entrada).flatten()
   predicted = inverse_interpolate(predicted, len(entrada)).flatten()
   predicted = predicted[:len(alvo)]
   return predicted
@@ -94,12 +95,16 @@ def tempo_de_leituras(n):
   return f"{horas}hrs"
 
 
+def formata_lista(lista):
+  return json.dumps(lista.tolist() if hasattr(lista, 'tolist') else lista)
+
+
 def salvar_run_csv(nome_modelo, real, previsto, entrada, mse, rmse, tempo, pico_memoria, caminho_csv):
   df = pd.DataFrame({
     'nome_modelo': [nome_modelo],
-    'real': [real],
-    'previsto': [previsto],
-    'entrada': [entrada],
+    'real': [formata_lista(real)],
+    'previsto': [formata_lista(previsto)],
+    'entrada': [formata_lista(entrada)],
     'mse': [mse],
     'rmse': [rmse],
     'tempo_consumo (s)': [tempo],
@@ -149,7 +154,7 @@ def main(modelpath, qnt_alvo, input_type):
     print("Tipo de entrada inválido.")
     return
 
-  print(f"tamanho da entrada = {len(entrada)}")
+  print(f"tamanho da entrada = {len(entrada)}, tipo da")
   dados_plotagem = data[-(4*qnt_alvo):]
   alvo = data[-qnt_alvo:]
 
@@ -157,6 +162,7 @@ def main(modelpath, qnt_alvo, input_type):
   nome_modelo = f"ViTime_{input_type}_{tempo_de_leituras(qnt_alvo)}"
   
   for i in range(repeticoes):
+    run = f"{nome_modelo}_run{i+1}"
     tracemalloc.start()
 
     inicio = time.perf_counter_ns()
@@ -171,8 +177,8 @@ def main(modelpath, qnt_alvo, input_type):
 
     mse, rmse = calcular_mse_rmse(alvo, previstos)
 
-    print(f"n = {qnt_alvo}, i = {i+1}, mse = {mse}, rmse = {rmse}, t = {tempo:.5f}, mb = {pico_memoria:.5f}")
-    salvar_run_csv(nome_modelo=f"nome_modelo_{i+1}run", 
+    print(f"n = {qnt_alvo}, modelo = {run}, mse = {mse:.5f}, rmse = {rmse:.5f}, t = {tempo:.5f}, mb = {pico_memoria:.5f}")
+    salvar_run_csv(nome_modelo=run, 
                     real=alvo, 
                     previsto=previstos, 
                     entrada=entrada, 
@@ -182,9 +188,6 @@ def main(modelpath, qnt_alvo, input_type):
                     pico_memoria=pico_memoria,
                     caminho_csv="resultado_inferencia.csv")
   print()
-
-  mse_medio = mse / repeticoes
-  rmse_medio = rmse / repeticoes
 
   #plotar_grafico(dados_plotagem, previstos, f"Inferência das Últimas {qnt_alvo} Leituras (zeroshot) - {input_type}", f"{nome_modelo}.png")
   #salvar_previsao_csv(nome_modelo, alvo, previstos, f"{nome_modelo}.csv")

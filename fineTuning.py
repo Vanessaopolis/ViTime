@@ -37,7 +37,7 @@ def train_epoch(model, optimizer, criterion, X_train, y_train, args):
     batch_x = X_train[i:i+args.batch_size]
     batch_y = y_train[i:i+args.batch_size]
     
-    batch_x = batch_x.to(args.device) #.cpu()
+    batch_x = batch_x.to(args.device)
     if len(batch_x.shape) == 2:
       batch_x = batch_x.unsqueeze(-1)
 
