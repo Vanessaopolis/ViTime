@@ -5,7 +5,6 @@ import argparse
 import tracemalloc
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from scipy import interpolate
 from model.model import ViTime
@@ -54,26 +53,10 @@ def executar_previsao(entrada, alvo, model, args):
   return predicted
 
 
-def plotar_grafico(dados, previstos, titulo, caminho_grafico):
-  plt.figure(figsize=(20, 8))
-  plt.plot(dados, label='Real', color='blue')
-
-  inicio_previsao = len(dados) - len(previstos)
-  posicao_previstos = range(inicio_previsao, inicio_previsao + len(previstos))
-  
-  plt.plot(posicao_previstos, previstos, label='Previsão', color='red')
-  plt.title(titulo, fontsize=24)
-  plt.legend(fontsize=16)
-  plt.xticks(fontsize=14)
-  plt.yticks(fontsize=14)
-  plt.grid(True)
-  plt.savefig(caminho_grafico, dpi=300)
-  plt.close()
-
-
 def calcular_mse_rmse(real, previsto):
   if (len(real) != len(previsto)):
     print("Os dados não têm a mesma quantidade de leituras")
+    print(f"real: {len(real)}, previsto: {len(previsto)}")
     return
   
   mse = mean_squared_error(real, previsto)
@@ -117,13 +100,6 @@ def salvar_run_csv(nome_modelo, real, previsto, entrada, mse, rmse, tempo, pico_
     df_existente.to_csv(caminho_csv, index=False)
   except FileNotFoundError:
     df.to_csv(caminho_csv, index=False)
-  
-
-def salvar_previsao_csv(nome_modelo, alvo, previstos, caminho_csv):
-  df = pd.DataFrame({'Real': alvo, 'Previsto': previstos})
-  df.insert(0, 'nome_modelo', '')
-  df.at[0, 'nome_modelo'] = nome_modelo
-  df.to_csv(caminho_csv, index=False)
 
 
 def main(modelpath, qnt_alvo, input_type):
@@ -132,6 +108,7 @@ def main(modelpath, qnt_alvo, input_type):
   df = pd.read_csv('/content/drive/MyDrive/ViTime/BD_AC_CPUTemp.csv', sep=';')
   data = df['CPUTemp'].dropna().values
   total_len = len(data)
+  print(f"Tamanho do dataset {total_len}")
 
   if qnt_alvo > total_len:
     print(f"Quantidade de valores alvo maior que o tamanho do dataset.")
@@ -139,30 +116,28 @@ def main(modelpath, qnt_alvo, input_type):
 
   if input_type == "full":
     # todo o banco de dados, menos os N últimos
-    entrada = data[: total_len - qnt_alvo]
+    inicio = 0
   
   elif input_type == "fixed":
     # 512 leituras anteriores às inferências
-    entrada = data[total_len - qnt_alvo - 512 : total_len - qnt_alvo] 
+    inicio = total_len - qnt_alvo - 512
   
   elif input_type == "moving":
     # entrada adaptativa
     tamanho_entrada = max(512, 10 * qnt_alvo)
-    entrada = data[total_len - qnt_alvo - tamanho_entrada : total_len - qnt_alvo]
+    inicio = max(0, total_len - qnt_alvo - tamanho_entrada)
   
   else:
     print("Tipo de entrada inválido.")
     return
 
-  print(f"tamanho da entrada = {len(entrada)}, tipo da")
-  dados_plotagem = data[-(4*qnt_alvo):]
+  entrada = data[inicio : total_len - qnt_alvo]
+  print(f"Tamanho da entrada {len(entrada)}")
   alvo = data[-qnt_alvo:]
 
   repeticoes = 30
-  nome_modelo = f"ViTime_{input_type}_{tempo_de_leituras(qnt_alvo)}"
-  
   for i in range(repeticoes):
-    run = f"{nome_modelo}_run{i+1}"
+    nome_modelo = f"ViTime_{input_type}_{tempo_de_leituras(qnt_alvo)}_run{i+1}"
     tracemalloc.start()
 
     inicio = time.perf_counter_ns()
@@ -177,8 +152,8 @@ def main(modelpath, qnt_alvo, input_type):
 
     mse, rmse = calcular_mse_rmse(alvo, previstos)
 
-    print(f"n = {qnt_alvo}, modelo = {run}, mse = {mse:.5f}, rmse = {rmse:.5f}, t = {tempo:.5f}, mb = {pico_memoria:.5f}")
-    salvar_run_csv(nome_modelo=run, 
+    print(f"n = {qnt_alvo}, modelo = {nome_modelo}, mse = {mse:.5f}, rmse = {rmse:.5f}, t = {tempo:.5f}, mb = {pico_memoria:.5f}")
+    salvar_run_csv(nome_modelo=nome_modelo, 
                     real=alvo, 
                     previsto=previstos, 
                     entrada=entrada, 
@@ -188,9 +163,6 @@ def main(modelpath, qnt_alvo, input_type):
                     pico_memoria=pico_memoria,
                     caminho_csv="resultado_inferencia.csv")
   print()
-
-  #plotar_grafico(dados_plotagem, previstos, f"Inferência das Últimas {qnt_alvo} Leituras (zeroshot) - {input_type}", f"{nome_modelo}.png")
-  #salvar_previsao_csv(nome_modelo, alvo, previstos, f"{nome_modelo}.csv")
 
 
 if __name__ == "__main__":
